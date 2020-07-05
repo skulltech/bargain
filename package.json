@@ -1,0 +1,17 @@
+{
+  "name": "bargain",
+  "version": "0.1.0",
+  "description": "Get them bargains.",
+  "dependencies": {
+    "serverless-finch": "^2.6.0",
+    "serverless-python-requirements": "^5.1.0",
+    "serverless-wsgi": "^1.7.5"
+  },
+  "devDependencies": {
+    "serverless-dynamodb-local": "^0.2.39"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/SkullTech/bargain.git"
+  }
+}

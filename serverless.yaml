@@ -1,0 +1,104 @@
+service: bargain
+
+plugins:
+  - serverless-python-requirements
+  - serverless-wsgi
+  - serverless-dynamodb-local
+  - serverless-finch
+
+custom:
+  tableName: bargains-table-${self:provider.stage}
+  wsgi:
+    app: app.app
+    packRequirements: false
+  pythonRequirements:
+    dockerizePip: non-linux
+  dynamodb:
+    start:
+      migrate: true
+    stages:
+      - dev
+  client:
+    bucketName: bargain-frontend
+    distributionFolder: dist
+
+provider:
+  name: aws
+  runtime: python3.8
+  stage: dev
+  region: ap-south-1
+  iamRoleStatements:
+    - Effect: Allow
+      Action:
+        - dynamodb:Query
+        - dynamodb:Scan
+        - dynamodb:PutItem
+        - dynamodb:UpdateItem
+      Resource:
+        - Fn::GetAtt:
+            - BargainsDynamoDBTable
+            - Arn
+        - Fn::Join:
+          - ''
+          - - Fn::GetAtt:
+              - BargainsDynamoDBTable
+              - Arn
+            - '/index/*'
+    - Effect: Allow
+      Action:
+        - SNS:CreateTopic
+        - SNS:Publish
+        - SNS:Subscribe
+      Resource: '*'
+  environment:
+    BARGAINS_TABLE: ${self:custom.tableName}
+
+functions:
+  app:
+    handler: wsgi_handler.handler
+    events:
+      - http: ANY /
+      - http: ANY {proxy+}
+  notify:
+    handler: app.send_notifications
+    events:
+      - schedule: rate(2 minutes)
+
+
+resources:
+  Resources:
+    BargainsDynamoDBTable:
+      Type: AWS::DynamoDB::Table
+      Properties:
+        AttributeDefinitions:
+          - AttributeName: productUrl
+            AttributeType: S
+          - AttributeName: email
+            AttributeType: S
+        KeySchema:
+          - AttributeName: productUrl
+            KeyType: HASH
+          - AttributeName: email
+            KeyType: RANGE
+        GlobalSecondaryIndexes:
+          - IndexName: emailIndex
+            KeySchema:
+              - AttributeName: email
+                KeyType: HASH
+            ProvisionedThroughput:
+              ReadCapacityUnits: 1
+              WriteCapacityUnits: 1
+            Projection:
+              ProjectionType: ALL
+        ProvisionedThroughput:
+          ReadCapacityUnits: 1
+          WriteCapacityUnits: 1
+        TableName: ${self:custom.tableName}
+
+package:
+  exclude:
+    - node_modules/**
+    - venv/**
+    - .idea/**
+    - __pycache__/**
+    - .dynamodb/**
