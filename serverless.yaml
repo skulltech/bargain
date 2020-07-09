@@ -7,7 +7,10 @@ plugins:
   - serverless-finch
 
 custom:
-  tableName: bargains-table-${self:provider.stage}
+  bargainsTableName: bargains-table-${self:provider.stage}
+  productsTableName: bargains-products-${self:provider.stage}
+  subscriptionsTableName: bargain-subscriptions-table-${self:provider.stage}
+  queueName: bargains-queue-${self:provider.stage}
   wsgi:
     app: app.app
     packRequirements: false
@@ -19,39 +22,59 @@ custom:
     stages:
       - dev
   client:
-    bucketName: bargain-frontend
+    bucketName: bargain-frontend-${self:provider.stage}
     distributionFolder: dist
 
 provider:
   name: aws
   runtime: python3.8
-  stage: dev
-  region: ap-south-1
+  stage: ${opt:stage, 'dev'}
+  region: ${opt:region, 'ap-south-1'}
   iamRoleStatements:
     - Effect: Allow
       Action:
-        - dynamodb:Query
-        - dynamodb:Scan
+        - dynamodb:GetItem
         - dynamodb:PutItem
         - dynamodb:UpdateItem
+        - dynamodb:DeleteItem
+        - dynamodb:Query
+        - dynamodb:Scan
       Resource:
         - Fn::GetAtt:
             - BargainsDynamoDBTable
             - Arn
         - Fn::Join:
-          - ''
-          - - Fn::GetAtt:
-              - BargainsDynamoDBTable
-              - Arn
-            - '/index/*'
+            - ''
+            - - Fn::GetAtt:
+                  - BargainsDynamoDBTable
+                  - Arn
+              - '/index/*'
+        - Fn::GetAtt:
+            - SubscriptionsDynamoDBTable
+            - Arn
+        - Fn::GetAtt:
+            - ProductDynamoDBTable
+            - Arn
     - Effect: Allow
       Action:
-        - SNS:CreateTopic
-        - SNS:Publish
-        - SNS:Subscribe
+        - sns:CreateTopic
+        - sns:Publish
+        - sns:Subscribe
       Resource: '*'
+    - Effect: Allow
+      Action:
+        - sqs:SendMessage
+        - sqs:GetQueueUrl
+      Resource:
+        Fn::GetAtt:
+          - TasksQueue
+          - Arn
+
   environment:
-    BARGAINS_TABLE: ${self:custom.tableName}
+    BARGAINS_TABLE: ${self:custom.bargainsTableName}
+    SUBSCRIPTIONS_TABLE: ${self:custom.subscriptionsTableName}
+    PRODUCTS_TABLE: ${self:custom.productsTableName}
+    QUEUE: ${self:custom.queueName}
 
 functions:
   app:
@@ -59,27 +82,43 @@ functions:
     events:
       - http: ANY /
       - http: ANY {proxy+}
-  notify:
-    handler: app.send_notifications
+    memorySize: 256
+  enqueue-tasks:
+    handler: app.enqueue_tasks
     events:
-      - schedule: rate(2 minutes)
-
+      - schedule: rate(30 minutes)
+    memorySize: 256
+  handle-task:
+    handler: app.handle_task
+    reservedConcurrency: 10
+    events:
+      - sqs:
+          batchSize: 1
+          arn:
+            Fn::GetAtt:
+              - TasksQueue
+              - Arn
+    memorySize: 256
 
 resources:
   Resources:
     BargainsDynamoDBTable:
       Type: AWS::DynamoDB::Table
       Properties:
+        TableName: ${self:custom.bargainsTableName}
+        ProvisionedThroughput:
+          ReadCapacityUnits: 1
+          WriteCapacityUnits: 1
         AttributeDefinitions:
+          - AttributeName: bargainId
+            AttributeType: S
           - AttributeName: productUrl
             AttributeType: S
           - AttributeName: email
             AttributeType: S
         KeySchema:
-          - AttributeName: productUrl
+          - AttributeName: bargainId
             KeyType: HASH
-          - AttributeName: email
-            KeyType: RANGE
         GlobalSecondaryIndexes:
           - IndexName: emailIndex
             KeySchema:
@@ -90,10 +129,45 @@ resources:
               WriteCapacityUnits: 1
             Projection:
               ProjectionType: ALL
+          - IndexName: productUrlIndex
+            KeySchema:
+              - AttributeName: productUrl
+                KeyType: HASH
+            ProvisionedThroughput:
+              ReadCapacityUnits: 1
+              WriteCapacityUnits: 1
+            Projection:
+              ProjectionType: ALL
+    SubscriptionsDynamoDBTable:
+      Type: AWS::DynamoDB::Table
+      Properties:
+        TableName: ${self:custom.subscriptionsTableName}
         ProvisionedThroughput:
           ReadCapacityUnits: 1
           WriteCapacityUnits: 1
-        TableName: ${self:custom.tableName}
+        AttributeDefinitions:
+          - AttributeName: email
+            AttributeType: S
+        KeySchema:
+          - AttributeName: email
+            KeyType: HASH
+    TasksQueue:
+      Type: 'AWS::SQS::Queue'
+      Properties:
+        QueueName: ${self:custom.queueName}
+    ProductDynamoDBTable:
+      Type: AWS::DynamoDB::Table
+      Properties:
+        TableName: ${self:custom.productsTableName}
+        ProvisionedThroughput:
+          ReadCapacityUnits: 1
+          WriteCapacityUnits: 1
+        AttributeDefinitions:
+          - AttributeName: productUrl
+            AttributeType: S
+        KeySchema:
+          - AttributeName: productUrl
+            KeyType: HASH
 
 package:
   exclude:
