@@ -1,0 +1,322 @@
+openapi: 3.0.1
+info:
+  title: Bargain
+  description: 'Serverless price tracker for Amazon.in and Flipkart.com. '
+  contact:
+    email: sumit@sumit-ghosh.com
+  version: 1.0.0
+externalDocs:
+  description: Find out more about Bargain
+  url: 'https://github.com/SkullTech/bargain'
+servers:
+  - url: 'https://x25iuvslok.execute-api.ap-south-1.amazonaws.com/dev/api/'
+tags:
+  - name: bargains
+    description: The products you're tracking
+  - name: products
+    description: The details of a product
+paths:
+  /bargains:
+    post:
+      tags:
+        - bargains
+      summary: Start tracking a product
+      description: 'Start tracking a product, using the product URL and your email address.'
+      requestBody:
+        description: >-
+          A bargain object containing your email and the URL of the product you
+          want to track.
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/bargain'
+            example:
+              email: sumit@skghosh.me
+              productUrl: 'https://www.amazon.in/gp/product/B00L2K9DM8/'
+        required: true
+      responses:
+        '200':
+          description: Successful operation
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/bargain'
+              example:
+                bargainId: 339c94149456e5046b2284906c8acac0
+                email: sumit@skghosh.me
+                productTitle: 'Quaker Oats, 1.5kg Pack'
+                productUrl: 'https://www.amazon.in/Quaker-Oats-1-5kg-Pack/dp/B00L2K9DM8'
+        '400':
+          description: Invalid input
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/error'
+              example:
+                error: Invalid productUrl
+    get:
+      tags:
+        - bargains
+      summary: Get all of your bargains
+      description: |
+        Get a list of the products you're tracking.
+      parameters:
+        - name: email
+          in: query
+          description: Your email
+          required: true
+          schema:
+            type: string
+          example: sumit@skghosh.me
+      responses:
+        '200':
+          description: Successful operation
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/bargain'
+              example:
+                - bargainId: e7afa2e3b2a6be05dd4db8c740823e2b
+                  email: sumit@skghosh.me
+                  productTitle: >-
+                    ASUS VivoBook 14 M409DA-EK146T AMD Quad Core Ryzen 5-3500U
+                    14-inch FHD Compact and Light Laptop (8GB RAM/256GB NVMe
+                    SSD/Windows 10/Integrated Graphics/FP Reader/1.60 kg),
+                    Transparent Silver
+                  productUrl: >-
+                    https://www.amazon.in/ASUS-VivoBook-M409DA-EK146T-Integrated-Transparent/dp/B082PB9GDN
+                - bargainId: 339c94149456e5046b2284906c8acac0
+                  email: sumit@skghosh.me
+                  productTitle: 'Quaker Oats, 1.5kg Pack'
+                  productUrl: 'https://www.amazon.in/Quaker-Oats-1-5kg-Pack/dp/B00L2K9DM8'
+        '400':
+          description: Invalid input
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/error'
+              example:
+                error: Please provide email
+  '/bargains/{bargainId}':
+    get:
+      tags:
+        - bargains
+      summary: Get details of a bargain
+      description: 'Get details of a bargain using its bargainId '
+      parameters:
+        - name: bargainId
+          in: path
+          description: bargainId of the bargain
+          required: true
+          schema:
+            type: string
+          example: 339c94149456e5046b2284906c8acac0
+      responses:
+        '200':
+          description: Successful operation
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/bargain'
+              example:
+                bargainId: 339c94149456e5046b2284906c8acac0
+                email: sumit@skghosh.me
+                productTitle: 'Quaker Oats, 1.5kg Pack'
+                productUrl: 'https://www.amazon.in/Quaker-Oats-1-5kg-Pack/dp/B00L2K9DM8'
+        '404':
+          description: Not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/error'
+              example:
+                error: Bargain does not exist
+    delete:
+      tags:
+        - bargains
+      summary: Delete a bargain
+      description: 'Delete a bargain, in another words, stop tracking a product '
+      parameters:
+        - name: bargainId
+          in: path
+          description: bargainId of the bargain
+          required: true
+          schema:
+            type: string
+          example: 339c94149456e5046b2284906c8acac0
+      responses:
+        '200':
+          description: Successful operation
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/success'
+              example:
+                error: Bargain deleted
+  /products:
+    get:
+      tags:
+        - products
+      summary: Get details of a product
+      description: |
+        Get a details of a product that's being tracked by the system
+      parameters:
+        - name: productUrl
+          in: query
+          description: The URL of the product
+          required: true
+          schema:
+            type: string
+          example: 'https://www.amazon.in/Quaker-Oats-1-5kg-Pack/dp/B00L2K9DM8'
+      responses:
+        '200':
+          description: Successful operation
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/product'
+              example:
+                latestPrice: 234
+                productTitle: 'Quaker Oats, 1.5kg Pack'
+                productUrl: 'https://www.amazon.in/Quaker-Oats-1-5kg-Pack/dp/B00L2K9DM8'
+        '400':
+          description: Invalid input
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/error'
+              example:
+                error: Please provide productUrl
+        '404':
+          description: Not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/error'
+              example:
+                error: Product does not exist
+  '/subscriptions/{email}':
+    get:
+      tags:
+        - subscriptions
+      summary: Get details of your subscription
+      description: 'Get details of your subscription, i.e. notification settings.'
+      parameters:
+        - name: email
+          in: path
+          description: Your email
+          required: true
+          schema:
+            type: string
+          example: sumit@skghosh.me
+      responses:
+        '200':
+          description: Successful operation
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/subscription'
+              example:
+                email: sumit@skghosh.me
+                subscribed: true
+        '404':
+          description: Not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/error'
+              example:
+                error: Subscription does not exist
+    put:
+      tags:
+        - subscriptions
+      summary: Update your subscription
+      description: 'Update your subscription, i.e. notification settings.'
+      parameters:
+        - name: email
+          in: path
+          description: Your email
+          required: true
+          schema:
+            type: string
+          example: sumit@skghosh.me
+      requestBody:
+        description: >-
+          An subscription object containing just a boolean `subscribed`,
+          describing whether you want to stay subscribed or not.
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/subscription'
+            example:
+              subscribed: false
+        required: true
+      responses:
+        '200':
+          description: Successful operation
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/subscription'
+              example:
+                email: sumit@skghosh.me
+                subscribed: true
+        '404':
+          description: Not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/error'
+              example:
+                error: Subscription does not exist
+components:
+  schemas:
+    bargain:
+      type: object
+      properties:
+        bargainId:
+          type: string
+        email:
+          type: string
+        productUrl:
+          type: string
+        productTitle:
+          type: string
+      required:
+        - email
+        - productUrl
+    product:
+      type: object
+      properties:
+        productUrl:
+          type: string
+        productTitle:
+          type: string
+        latestPrice:
+          type: string
+      required:
+        - productUrl
+        - productTitle
+        - latestPrice
+    subscription:
+      type: object
+      properties:
+        email:
+          type: string
+        subscribed:
+          type: boolean
+      required:
+        - subscribed
+    success:
+      type: object
+      properties:
+        success:
+          type: string
+    error:
+      type: object
+      properties:
+        error:
+          type: string
+

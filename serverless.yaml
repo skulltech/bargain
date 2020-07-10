@@ -4,7 +4,6 @@ plugins:
   - serverless-python-requirements
   - serverless-wsgi
   - serverless-dynamodb-local
-  - serverless-finch
 
 custom:
   bargainsTableName: bargains-table-${self:provider.stage}
@@ -21,9 +20,6 @@ custom:
       migrate: true
     stages:
       - dev
-  client:
-    bucketName: bargain-frontend-${self:provider.stage}
-    distributionFolder: dist
 
 provider:
   name: aws
