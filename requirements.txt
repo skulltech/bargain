@@ -2,3 +2,4 @@ requests
 lxml
 Flask
 boto3
+flask-cors

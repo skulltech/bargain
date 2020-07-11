@@ -7,11 +7,14 @@ from hashlib import md5
 
 import boto3
 from flask import Flask, jsonify, request
+from flask_cors import CORS, cross_origin
 
 from get_details import get_details, InvalidURLException
 
 logging.getLogger().setLevel(logging.INFO)
 app = Flask(__name__)
+cors = CORS(app)
+app.config['CORS_HEADERS'] = 'Content-Type'
 
 BARGAINS_TABLE = os.environ['BARGAINS_TABLE']
 SUBSCRIPTIONS_TABLE = os.environ['SUBSCRIPTIONS_TABLE']
@@ -54,6 +57,7 @@ def create_topic(email):
 
 
 @app.route('/api/bargains')
+@cross_origin()
 def get_bargains():
     email = request.args.get('email')
     if not email:
@@ -68,6 +72,7 @@ def get_bargains():
 
 
 @app.route('/api/bargains/<string:bargain_id>')
+@cross_origin()
 def get_bargain(bargain_id):
     response = bargains_table.get_item(Key={'bargainId': bargain_id})
     item = response.get('Item')
@@ -77,6 +82,7 @@ def get_bargain(bargain_id):
 
 
 @app.route('/api/bargains', methods=['POST'])
+@cross_origin()
 def create_bargain():
     product_url = request.json.get('productUrl')
     email = request.json.get('email')
@@ -135,12 +141,14 @@ def create_bargain():
 
 
 @app.route('/api/bargains/<string:bargain_id>', methods=['DELETE'])
+@cross_origin()
 def delete_bargain(bargain_id):
     bargains_table.delete_item(Key={'bargainId': bargain_id})
     return jsonify({'success': 'Bargain deleted'})
 
 
 @app.route('/api/subscriptions/<string:email>')
+@cross_origin()
 def get_subscription(email):
     response = subscriptions_table.get_item(Key={'email': email})
     item = response.get('Item')
@@ -150,6 +158,7 @@ def get_subscription(email):
 
 
 @app.route('/api/subscriptions/<string:email>', methods=['PUT'])
+@cross_origin()
 def update_subscription(email):
     subscribed = request.json.get('subscribed') or False
     sub = subscriptions_table.get_item(Key={'email': email}).get('Item')
@@ -174,6 +183,7 @@ def update_subscription(email):
 
 
 @app.route('/api/products')
+@cross_origin()
 def get_product():
     product_url = request.args.get('productUrl')
     if not product_url:
