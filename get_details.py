@@ -50,6 +50,8 @@ def get_flipkart_details(tree):
 
 
 def get_details(url):
+    if 'amazon.in' not in url and 'flipkart.in' not in url:
+        raise InvalidURLException('url is not a valid amazon.in or flipkart.com product page')
     try:
         page = requests.get(url, headers={'User-Agent': random.choice(user_agents)})
     except Exception:
