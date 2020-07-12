@@ -1,4 +1,4 @@
 # bargain
 Get them bargains.
 
-- API documentation is available @ [https://skulltech.github.io/bargain/swagger/](https://skulltech.github.io/bargain/swagger/)
+- API documentation is available @ [https://gh.skghosh.me/bargain/swagger/](https://gh.skghosh.me/bargain/swagger/)
