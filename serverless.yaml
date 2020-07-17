@@ -157,7 +157,7 @@ resources:
       Type: 'AWS::SQS::Queue'
       Properties:
         QueueName: ${self:custom.queueName}
-    ProductDynamoDBTable:
+    ProductsDynamoDBTable:
       Type: AWS::DynamoDB::Table
       Properties:
         TableName: ${self:custom.productsTableName}
