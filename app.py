@@ -38,6 +38,12 @@ subscriptions_table = db.Table(SUBSCRIPTIONS_TABLE)
 products_table = db.Table(PRODUCTS_TABLE)
 sns = boto3.client('sns')
 
+NOTIFICATION_TEMPLATE = '''
+Price change notification for {title}
+{price_old} ⟶ {price_new}
+Check the product @ {url}
+'''
+
 
 class DecimalEncoder(json.JSONEncoder):
     def default(self, o):
@@ -216,13 +222,17 @@ def handle_task(event, context):
         if latest_price != product['latestPrice']:
             for email in emails:
                 logging.info(f'Sending notification to {email}')
-                sns.publish(Message=f'{product["productTitle"]} now costs {latest_price}', TopicArn=create_topic(email))
+                message = NOTIFICATION_TEMPLATE.format(title=product['productTitle'],
+                                                       price_old=product['latestPrice'],
+                                                       price_new=latest_price,
+                                                       url=product['productUrl'])
+                sns.publish(Message=message, TopicArn=create_topic(email))
             products_table.update_item(
                 Key={'productUrl': product['productUrl']},
                 UpdateExpression='set latestPrice=:price',
                 ExpressionAttributeValues={':price': latest_price}
             )
-            message = 'Price changed: Successfully updated price and notified users'
+            message = 'Price changed; successfully updated price and notified users'
         else:
             message = 'Price has not changed'
     else:

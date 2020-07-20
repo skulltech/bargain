@@ -7,7 +7,7 @@ plugins:
 
 custom:
   bargainsTableName: bargains-table-${self:provider.stage}
-  productsTableName: bargains-products-${self:provider.stage}
+  productsTableName: bargains-products-table-${self:provider.stage}
   subscriptionsTableName: bargain-subscriptions-table-${self:provider.stage}
   queueName: bargains-queue-${self:provider.stage}
   wsgi:
@@ -88,7 +88,7 @@ functions:
   enqueue-tasks:
     handler: app.enqueue_tasks
     events:
-      - schedule: rate(30 minutes)
+      - schedule: rate(10 minutes)
     memorySize: 256
   handle-task:
     handler: app.handle_task
