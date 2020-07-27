@@ -88,7 +88,7 @@ functions:
   enqueue-tasks:
     handler: app.enqueue_tasks
     events:
-      - schedule: rate(10 minutes)
+      - schedule: rate(30 minutes)
     memorySize: 256
   handle-task:
     handler: app.handle_task

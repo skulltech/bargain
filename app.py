@@ -219,7 +219,7 @@ def handle_task(event, context):
         latest_price = get_details(product['productUrl'])['price']
         logging.info(f'Latest price is {latest_price}')
 
-        if latest_price != product['latestPrice']:
+        if latest_price != product.get('latestPrice', None):
             for email in emails:
                 logging.info(f'Sending notification to {email}')
                 message = NOTIFICATION_TEMPLATE.format(title=product['productTitle'],
